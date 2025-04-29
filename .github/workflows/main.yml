@@ -1,0 +1,47 @@
+name: Deploy Wedding App
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install gunicorn
+    
+    - name: Create necessary files for deployment
+      run: |
+        echo "flask==2.0.1" > requirements.txt
+        echo "gunicorn==20.1.0" >> requirements.txt
+        echo "web: gunicorn app:app" > Procfile
+    
+    # För Render deployment
+    - name: Deploy to Render
+      env:
+        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+      run: |
+        curl -X POST https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys \
+          -H "Authorization: Bearer $RENDER_API_KEY"  
+      # Notera: För att detta ska fungera behöver du skapa API-nycklar på Render och lägga till dem som GitHub secrets
+    
+    # Alternativ deployment till Heroku
+    # - name: Deploy to Heroku
+    #   uses: akhileshns/heroku-deploy@v3.12.12
+    #   with:
+    #     heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+    #     heroku_app_name: "din-app-namn"
+    #     heroku_email: "din-email@example.com"
